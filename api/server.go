@@ -32,9 +32,10 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", s.ping)
 
+	middleware := NewLoggerMiddelware(s.logger)
 	server := &http.Server{
 		Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
-		Handler: mux,
+		Handler: middleware(mux),
 	}
 
 	go func() {
