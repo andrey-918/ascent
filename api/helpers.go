@@ -1,0 +1,47 @@
+package api
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+)
+
+type ErrWithStatus struct{
+	status int
+	err error
+}
+
+func (e *ErrWithStatus) Error() string {
+	return e.err.Error()
+}
+
+func NewErrWihStatus(status int, err error) *ErrWithStatus {
+	return &ErrWithStatus{
+		status: status,
+		err: err,
+	}
+}
+
+func handler(f func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
+			status := http.StatusInternalServerError
+			msg := http.StatusText(status)
+			if e, ok := err.(*ErrWithStatus); ok {
+				status = e.status
+				msg = http.StatusText(e.status)
+				if status == http.StatusBadRequest || status == http.StatusConflict{
+					msg = e.err.Error()
+				}
+			}
+
+			slog.Error("error executing handler", "error", err, "status", status, "message", msg)
+			w.WriteHeader(status)
+			if err := json.NewEncoder(w).Encode(ApiResponse[struct{}]{
+				Message: msg,
+			}); err != nil {
+				slog.Error("error encoding response", "error", err)
+			}
+		}
+	}
+}
