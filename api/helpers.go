@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 )
@@ -44,4 +45,28 @@ func handler(f func(w http.ResponseWriter, r *http.Request) error) http.HandlerF
 			}
 		}
 	}
+}
+
+func encode[T any](v T, status int, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		return fmt.Errorf("encoding response: %w", err)
+	}
+	return nil 
+}
+
+type Validator interface {
+	Validate() error
+}
+
+func decode[T Validator](r *http.Request) (T, error) {
+	var t T
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return t, fmt.Errorf("decoding request body: %w", err)
+	}
+	if err := t.Validate(); err != nil {
+		return t, err
+	}
+	return t, nil
 }

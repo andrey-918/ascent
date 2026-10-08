@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,16 +27,11 @@ type ApiResponse[T any] struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (s *ApiServer) signupHandler(w http.ResponseWriter, r *http.Request) http.HandlerFunc{
+func (s *ApiServer) signupHandler() http.HandlerFunc{
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
-		var req SignupRequst
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid request body: %v", err))
-		}
-		defer r.Body.Close()
-
-		if err := req.Validate(); err != nil {
-			return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid request: %v", err))
+		req, err := decode[SignupRequst](r)
+		if err != nil {
+			return NewErrWihStatus(http.StatusBadRequest, err)
 		}
 
 		existingUser, err := s.store.Users.ByEmail(r.Context(), req.Email)
@@ -51,14 +45,13 @@ func (s *ApiServer) signupHandler(w http.ResponseWriter, r *http.Request) http.H
 		if _, err := s.store.Users.CreateUser(r.Context(), req.Email, req.Password); err != nil {
 			return NewErrWihStatus(http.StatusInternalServerError, err)
 		}
-
-		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(ApiResponse[struct{}]{
+		
+		if err := encode(ApiResponse[struct{}]{
 			Message: "successfully signed up user",
-		}); err != nil {
+		}, http.StatusCreated, w); err != nil {
 			return NewErrWihStatus(http.StatusInternalServerError, err)
 		}
-		
+
 		return nil
 	})
 }
