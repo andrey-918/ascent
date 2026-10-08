@@ -3,6 +3,7 @@ package main
 import (
 	"ascent/api"
 	"ascent/config"
+	"ascent/store"
 	"context"
 	"log"
 	"log/slog"
@@ -27,7 +28,13 @@ func run() error {
 
 	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
 	logger := slog.New(jsonHandler)
-	server := api.New(conf, logger)
+
+	db, err := store.NewPostgresDB(conf)
+	if err != nil {
+		return err
+	}
+	dataStore := store.New(db)
+	server := api.New(conf, logger, dataStore)
 	if err := server.Start(ctx); err != nil {
 		return err
 	}
