@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 func NewPostgresDB(conf *config.Config) (*sql.DB, error) {
