@@ -19,7 +19,7 @@ func TestJWTManager(t *testing.T) {
 
 	require.True(t, jwtManager.IsAccessToken(tokenPair.AccessToken))
 	require.False(t, jwtManager.IsAccessToken(tokenPair.RefreshToken))
-	
+
 	accessTokenSubject, err := tokenPair.AccessToken.Claims.GetSubject()
 	require.NoError(t, err)
 	require.Equal(t, userId.String(), accessTokenSubject)
@@ -27,7 +27,7 @@ func TestJWTManager(t *testing.T) {
 	accessTokenIssuer, err := tokenPair.AccessToken.Claims.GetIssuer()
 	require.NoError(t, err)
 	require.Equal(t, "http://"+conf.ApiServerHost+":"+conf.ApiServerPort, accessTokenIssuer)
-	
+
 	refreshTokenSubject, err := tokenPair.RefreshToken.Claims.GetSubject()
 	require.NoError(t, err)
 	require.Equal(t, userId.String(), refreshTokenSubject)

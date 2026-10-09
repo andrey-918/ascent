@@ -27,7 +27,7 @@ type ApiResponse[T any] struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (s *ApiServer) signupHandler() http.HandlerFunc{
+func (s *ApiServer) signupHandler() http.HandlerFunc {
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
 		req, err := decode[SignupRequst](r)
 		if err != nil {
@@ -45,7 +45,7 @@ func (s *ApiServer) signupHandler() http.HandlerFunc{
 		if _, err := s.store.Users.CreateUser(r.Context(), req.Email, req.Password); err != nil {
 			return NewErrWihStatus(http.StatusInternalServerError, err)
 		}
-		
+
 		if err := encode(ApiResponse[struct{}]{
 			Message: "successfully signed up user",
 		}, http.StatusCreated, w); err != nil {

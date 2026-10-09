@@ -7,9 +7,9 @@ import (
 	"net/http"
 )
 
-type ErrWithStatus struct{
+type ErrWithStatus struct {
 	status int
-	err error
+	err    error
 }
 
 func (e *ErrWithStatus) Error() string {
@@ -19,7 +19,7 @@ func (e *ErrWithStatus) Error() string {
 func NewErrWihStatus(status int, err error) *ErrWithStatus {
 	return &ErrWithStatus{
 		status: status,
-		err: err,
+		err:    err,
 	}
 }
 
@@ -31,7 +31,7 @@ func handler(f func(w http.ResponseWriter, r *http.Request) error) http.HandlerF
 			if e, ok := err.(*ErrWithStatus); ok {
 				status = e.status
 				msg = http.StatusText(e.status)
-				if status == http.StatusBadRequest || status == http.StatusConflict{
+				if status == http.StatusBadRequest || status == http.StatusConflict {
 					msg = e.err.Error()
 				}
 			}
@@ -53,7 +53,7 @@ func encode[T any](v T, status int, w http.ResponseWriter) error {
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return fmt.Errorf("encoding response: %w", err)
 	}
-	return nil 
+	return nil
 }
 
 type Validator interface {
