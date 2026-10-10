@@ -13,17 +13,17 @@ import (
 )
 
 type ApiServer struct {
-	config *config.Config
-	logger *slog.Logger
-	store  *store.Store
+	config     *config.Config
+	logger     *slog.Logger
+	store      *store.Store
 	jwtManager *JWTManager
 }
 
 func New(cfg *config.Config, logger *slog.Logger, store *store.Store, jwtManager *JWTManager) *ApiServer {
 	return &ApiServer{
-		config: cfg,
-		logger: logger,
-		store:  store,
+		config:     cfg,
+		logger:     logger,
+		store:      store,
 		jwtManager: jwtManager,
 	}
 }
@@ -39,7 +39,8 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /auth/signup", s.signupHandler())
 	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 
-	middleware := NewLoggerMiddelware(s.logger)
+	middleware := NewLoggerMiddleware(s.logger)
+	middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
 	server := &http.Server{
 		Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
 		Handler: middleware(mux),
