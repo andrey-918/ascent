@@ -57,12 +57,12 @@ func (s *ApiServer) signupHandler() http.HandlerFunc {
 }
 
 type SigningRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type SigningResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
@@ -108,7 +108,7 @@ func (s *ApiServer) signinHandler() http.HandlerFunc {
 
 		if err := encode(ApiResponse[SigningResponse]{
 			Data: &SigningResponse{
-				AccessToken: tokenPair.AccessToken.Raw,
+				AccessToken:  tokenPair.AccessToken.Raw,
 				RefreshToken: tokenPair.RefreshToken.Raw,
 			},
 		}, http.StatusOK, w); err != nil {
