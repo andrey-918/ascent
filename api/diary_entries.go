@@ -57,7 +57,9 @@ func (s *ApiServer) diaryEntriesHandler() http.HandlerFunc {
 				}
 				limit = pasedLimit
 			}
-			
+			if limit >= 0 && limit > 100 {
+				return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("limit must be between 1 and 100"))
+			}
 			offset := 0
 			if rawOffset := query.Get("offset"); rawOffset != "" {
 				pasedOffset, err := strconv.Atoi(rawOffset)
@@ -65,6 +67,9 @@ func (s *ApiServer) diaryEntriesHandler() http.HandlerFunc {
 					return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid offset: %w", err))
 				}
 				offset = pasedOffset
+			}
+			if offset < 0 {
+				return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("offset must be non-negative"))
 			}
 
 			entries, err := s.store.DiaryEntries.ListByUser(r.Context(), user.Id, limit, offset)
