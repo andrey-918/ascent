@@ -33,18 +33,22 @@ func (s *ApiServer) ping(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("pong"))
 }
 
-func (s *ApiServer) Start(ctx context.Context) error {
+func (s *ApiServer) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ping", s.ping)
 	mux.HandleFunc("POST /auth/signup", s.signupHandler())
 	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 	mux.HandleFunc("POST /auth/refresh", s.tokenRefreshHandler())
+	mux.HandleFunc("/diary-entries", s.diaryEntriesHandler())
 
-	middleware := NewLoggerMiddleware(s.logger)
-	middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
+	handler := NewLoggerMiddleware(s.logger)(mux)
+	return NewAuthMiddleware(s.jwtManager, s.store.Users)(handler)
+}
+
+func (s *ApiServer) Start(ctx context.Context) error {
 	server := &http.Server{
 		Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
-		Handler: middleware(mux),
+		Handler: s.Handler(),
 	}
 
 	go func() {
