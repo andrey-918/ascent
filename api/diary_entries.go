@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -47,7 +48,26 @@ func (s *ApiServer) diaryEntriesHandler() http.HandlerFunc {
 			}
 			return nil
 		case http.MethodGet:
-			entries, err := s.store.DiaryEntries.ListByUser(r.Context(), user.Id)
+			query := r.URL.Query()
+			limit := 20
+			if rawLimit := query.Get("limit"); rawLimit != "" {
+				pasedLimit, err := strconv.Atoi(rawLimit)
+				if err != nil {
+					return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid limit: %w", err))
+				}
+				limit = pasedLimit
+			}
+			
+			offset := 0
+			if rawOffset := query.Get("offset"); rawOffset != "" {
+				pasedOffset, err := strconv.Atoi(rawOffset)
+				if err != nil {
+					return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid offset: %w", err))
+				}
+				offset = pasedOffset
+			}
+
+			entries, err := s.store.DiaryEntries.ListByUser(r.Context(), user.Id, limit, offset)
 			if err != nil {
 				return NewErrWihStatus(http.StatusInternalServerError, err)
 			}
