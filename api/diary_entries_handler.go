@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
 )
 
 const maxDiaryEntryLength = 10000
@@ -57,7 +59,7 @@ func (s *ApiServer) diaryEntriesHandler() http.HandlerFunc {
 				}
 				limit = parsedLimit
 			}
-			if limit >= 0 && limit > 100 {
+			if limit <= 0 || limit > 100 {
 				return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("limit must be between 1 and 100"))
 			}
 			offset := 0
@@ -83,5 +85,62 @@ func (s *ApiServer) diaryEntriesHandler() http.HandlerFunc {
 		default:
 			return NewErrWihStatus(http.StatusMethodNotAllowed, errors.New("method not allowed"))
 		}
+	})
+}
+
+func (s *ApiServer) getDiaryEntryHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+		user, ok := r.Context().Value(userCtxKey{}).(*store.User)
+		if !ok {
+			return NewErrWihStatus(http.StatusUnauthorized, errors.New("authentication required"))
+		}
+
+		idStr := r.PathValue("id")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid diary entry id: %w", err))
+		}
+
+		entry, err := s.store.DiaryEntries.ById(r.Context(), id, user.Id)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if errors.Is(err, store.ErrDiaryEntryNotFound) {
+				status = http.StatusNotFound
+			}
+			return NewErrWihStatus(status, err)
+		}
+
+		if err := encode(ApiResponse[store.DiaryEntry]{Data: entry}, http.StatusOK, w); err != nil {
+			return NewErrWihStatus(http.StatusInternalServerError, err)
+		}
+		return nil
+	})
+}
+
+func (s *ApiServer) deleteDiaryEntryHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+		user, ok := r.Context().Value(userCtxKey{}).(*store.User)
+		if !ok {
+			return NewErrWihStatus(http.StatusUnauthorized, errors.New("authentication required"))
+		}
+
+		idStr := r.PathValue("id")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return NewErrWihStatus(http.StatusBadRequest, fmt.Errorf("invalid diary entry id: %w", err))
+		}
+
+		if err := s.store.DiaryEntries.Delete(r.Context(), id, user.Id); err != nil {
+			status := http.StatusInternalServerError
+			if errors.Is(err, store.ErrDiaryEntryNotFound) {
+				status = http.StatusNotFound
+			}
+			return NewErrWihStatus(status, err)
+		}
+
+		if err := encode(ApiResponse[struct{}]{Message: "diary entry deleted successfully"}, http.StatusOK, w); err != nil {
+			return NewErrWihStatus(http.StatusInternalServerError, err)
+		}
+		return nil
 	})
 }

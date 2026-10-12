@@ -11,6 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var ErrDiaryEntryNotFound = errors.New("diary entry not found")
+
 type DiaryEntryStore struct {
 	db *sqlx.DB
 }
@@ -72,7 +74,7 @@ func (s *DiaryEntryStore) ById(ctx context.Context, id, userId uuid.UUID) (*Diar
 	var entry DiaryEntry
 	if err := s.db.GetContext(ctx, &entry, query, id, userId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("diary entry with id %s not found", id)
+			return nil, fmt.Errorf("%w: id %s", ErrDiaryEntryNotFound, id)
 		}
 		return nil, fmt.Errorf("failed to get diary entry by id %s: %w", id, err)
 	}
@@ -95,7 +97,7 @@ func (s *DiaryEntryStore) Delete(ctx context.Context, id, userId uuid.UUID) erro
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("diary entry with id %s not found", id)
+		return fmt.Errorf("%w: id %s", ErrDiaryEntryNotFound, id)
 	}
 
 	return nil
