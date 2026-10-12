@@ -65,7 +65,6 @@ func TestDiaryEntriesHandler(t *testing.T) {
 	handler.ServeHTTP(unauthenticatedResponse, unauthenticatedRequest)
 	require.Equal(t, http.StatusUnauthorized, unauthenticatedResponse.Code)
 
-
 	requestById := httptest.NewRequest(http.MethodGet, "/diary-entries/"+created.Data.ID.String(), nil)
 	requestById.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken.Raw)
 	responseById := httptest.NewRecorder()

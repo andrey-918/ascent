@@ -99,6 +99,5 @@ func (s *DiaryEntryStore) Delete(ctx context.Context, id, userId uuid.UUID) erro
 	if rowsAffected == 0 {
 		return fmt.Errorf("%w: id %s", ErrDiaryEntryNotFound, id)
 	}
-
 	return nil
 }
