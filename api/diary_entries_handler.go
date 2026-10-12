@@ -138,9 +138,7 @@ func (s *ApiServer) deleteDiaryEntryHandler() http.HandlerFunc {
 			return NewErrWihStatus(status, err)
 		}
 
-		if err := encode(ApiResponse[struct{}]{Message: "diary entry deleted successfully"}, http.StatusOK, w); err != nil {
-			return NewErrWihStatus(http.StatusInternalServerError, err)
-		}
+		w.WriteHeader(http.StatusNoContent)
 		return nil
 	})
 }

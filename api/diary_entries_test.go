@@ -64,4 +64,32 @@ func TestDiaryEntriesHandler(t *testing.T) {
 	unauthenticatedResponse := httptest.NewRecorder()
 	handler.ServeHTTP(unauthenticatedResponse, unauthenticatedRequest)
 	require.Equal(t, http.StatusUnauthorized, unauthenticatedResponse.Code)
+
+
+	requestById := httptest.NewRequest(http.MethodGet, "/diary-entries/"+created.Data.ID.String(), nil)
+	requestById.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken.Raw)
+	responseById := httptest.NewRecorder()
+	handler.ServeHTTP(responseById, requestById)
+
+	require.Equal(t, http.StatusOK, responseById.Code)
+	var entryById struct {
+		Data store.DiaryEntry `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(responseById.Body.Bytes(), &entryById))
+	require.Equal(t, created.Data.ID, entryById.Data.ID)
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/diary-entries/"+created.Data.ID.String(), nil)
+	deleteRequest.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken.Raw)
+	deleteResponse := httptest.NewRecorder()
+	handler.ServeHTTP(deleteResponse, deleteRequest)
+
+	require.Equal(t, http.StatusNoContent, deleteResponse.Code)
+
+	// Verify that the entry is deleted
+	verifyDeleteRequest := httptest.NewRequest(http.MethodGet, "/diary-entries/"+created.Data.ID.String(), nil)
+	verifyDeleteRequest.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken.Raw)
+	verifyDeleteResponse := httptest.NewRecorder()
+	handler.ServeHTTP(verifyDeleteResponse, verifyDeleteRequest)
+
+	require.Equal(t, http.StatusNotFound, verifyDeleteResponse.Code)
 }
