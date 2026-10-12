@@ -59,16 +59,14 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			s.logger.Error("apiserver faile to shutdown", "error", err)
 		}
-	}()
+	})
 
 	wg.Wait()
 	return nil
