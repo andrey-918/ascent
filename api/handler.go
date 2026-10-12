@@ -118,3 +118,21 @@ func (s *ApiServer) signinHandler() http.HandlerFunc {
 		return nil
 	})
 }
+
+type TokenRefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (r TokenRefreshRequest) Validate() error {
+	if r.RefreshToken == "" {
+		return errors.New("refresh token is required")
+	}
+
+	return nil
+}
+
+func (s *ApiServer) tokenRefreshHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+
+	})
+}
