@@ -38,45 +38,52 @@ func NewAuthMiddleware(jwtManger *JWTManager, userStore *store.UserStore) func(n
 				token = parts[1]
 			}
 			if token == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 
 			parsedToken, err := jwtManger.Parse(token)
 			if err != nil {
 				slog.Error("failed to parse token", "error", err)
-				w.WriteHeader(http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 
 			if !jwtManger.IsAccessToken(parsedToken) {
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("not an access token"))
+				writeUnauthorized(w)
 				return
 			}
 
 			userIdStr, err := parsedToken.Claims.GetSubject()
 			if err != nil {
 				slog.Error("failed to extract subject claim from token", "error", err)
-				w.WriteHeader(http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 
 			userId, err := uuid.Parse(userIdStr)
 			if err != nil {
 				slog.Error("token subject is not valie uuid", "error", err)
-				w.WriteHeader(http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 
 			user, err := userStore.ById(r.Context(), userId)
 			if err != nil {
 				slog.Error("failed to get user by id", "error", err)
-				w.WriteHeader(http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 
 			next.ServeHTTP(w, r.WithContext(ContextWithUser(r.Context(), user)))
 		})
+	}
+}
+
+func writeUnauthorized(w http.ResponseWriter) {
+	if err := encode(ApiResponse[struct{}]{
+		Message: http.StatusText(http.StatusUnauthorized),
+	}, http.StatusUnauthorized, w); err != nil {
+		slog.Error("failed to encode unauthorized response", "error", err)
 	}
 }
