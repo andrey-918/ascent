@@ -31,6 +31,12 @@ func TestDiaryEntriesHandler(t *testing.T) {
 	tokenPair, err := api.NewJWTManager(env.Config).GenerateTokenPair(user.Id)
 	require.NoError(t, err)
 
+	pingRequest := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	pingResponse := httptest.NewRecorder()
+	handler.ServeHTTP(pingResponse, pingRequest)
+	require.Equal(t, http.StatusOK, pingResponse.Code)
+	require.Equal(t, "pong", pingResponse.Body.String())
+
 	createRequest := httptest.NewRequest(http.MethodPost, "/diary-entries", bytes.NewBufferString(`{"content":"Сегодня отложил 100 ₽"}`))
 	createRequest.Header.Set("Authorization", "Bearer "+tokenPair.AccessToken.Raw)
 	createResponse := httptest.NewRecorder()
@@ -93,10 +99,12 @@ func TestDiaryEntriesHandler(t *testing.T) {
 		firstPage.Data[0].ID,
 		secondPage.Data[0].ID,
 	})
+	require.Equal(t, http.StatusOK, doRequest(http.MethodGet, "/diary-entries?limit=100", "").Code)
 
 	// Invalid and out-of-range pagination parameters are client errors.
 	for _, path := range []string{
 		"/diary-entries?limit=abc",
+		"/diary-entries?limit=-1",
 		"/diary-entries?limit=0",
 		"/diary-entries?limit=101",
 		"/diary-entries?offset=-1",
@@ -146,6 +154,25 @@ func TestDiaryEntriesHandler(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, foreignDeleteResponse.Code)
 	_, err = dataStore.DiaryEntries.ById(t.Context(), otherEntry.ID, otherUser.Id)
 	require.NoError(t, err, "foreign entry must remain after rejected deletion")
+
+	goal, err := dataStore.Goals.Create(t.Context(), user.Id, "Savings", 10_000)
+	require.NoError(t, err)
+	entryWithFinancialEvent, err := dataStore.DiaryEntries.Create(t.Context(), user.Id, "Отложил 10 рублей")
+	require.NoError(t, err)
+	_, err = dataStore.FinancialEvents.Apply(t.Context(), store.FinancialEvent{
+		ID:            uuid.New(),
+		UserID:        user.Id,
+		GoalID:        goal.ID,
+		DiaryEntryID:  entryWithFinancialEvent.ID,
+		Type:          store.FinancialEventDeposit,
+		AmountKopecks: 1_000,
+		Currency:      "RUB",
+		SourceText:    "отложил 10 рублей",
+	})
+	require.NoError(t, err)
+	rejectedDelete := doRequest(http.MethodDelete, "/diary-entries/"+entryWithFinancialEvent.ID.String(), "")
+	require.Equal(t, http.StatusConflict, rejectedDelete.Code)
+	require.Equal(t, http.StatusOK, doRequest(http.MethodGet, "/diary-entries/"+entryWithFinancialEvent.ID.String(), "").Code)
 
 	// Invalid UUIDs and valid but missing IDs have distinct client-facing cases.
 	for _, method := range []string{http.MethodGet, http.MethodDelete} {

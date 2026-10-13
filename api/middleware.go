@@ -28,7 +28,8 @@ func ContextWithUser(ctx context.Context, user *store.User) context.Context {
 func NewAuthMiddleware(jwtManger *JWTManager, userStore *store.UserStore) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/auth") {
+			switch r.URL.Path {
+			case "/auth/signup", "/auth/signin", "/auth/refresh", "/ping":
 				next.ServeHTTP(w, r)
 				return
 			}

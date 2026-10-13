@@ -134,6 +134,8 @@ func (s *ApiServer) deleteDiaryEntryHandler() http.HandlerFunc {
 			status := http.StatusInternalServerError
 			if errors.Is(err, store.ErrDiaryEntryNotFound) {
 				status = http.StatusNotFound
+			} else if errors.Is(err, store.ErrDiaryEntryHasFinancialEvents) {
+				status = http.StatusConflict
 			}
 			return NewErrWihStatus(status, err)
 		}

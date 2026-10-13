@@ -42,6 +42,8 @@ func (s *ApiServer) Handler() http.Handler {
 	mux.HandleFunc("/diary-entries", s.diaryEntriesHandler())
 	mux.HandleFunc("GET /diary-entries/{id}", s.getDiaryEntryHandler())
 	mux.HandleFunc("DELETE /diary-entries/{id}", s.deleteDiaryEntryHandler())
+	mux.HandleFunc("/goals", s.goalsHandler())
+	mux.HandleFunc("GET /goals/{id}", s.getGoalHandler())
 
 	handler := NewLoggerMiddleware(s.logger)(mux)
 	return NewAuthMiddleware(s.jwtManager, s.store.Users)(handler)

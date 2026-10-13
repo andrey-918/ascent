@@ -6,6 +6,8 @@ type Store struct {
 	Users             *UserStore
 	RefreshTokenStore *RefreshTokenStore
 	DiaryEntries      *DiaryEntryStore
+	Goals             *GoalStore
+	FinancialEvents   *FinancialEventStore
 }
 
 func New(db *sql.DB) *Store {
@@ -13,5 +15,7 @@ func New(db *sql.DB) *Store {
 		Users:             NewUserStore(db),
 		RefreshTokenStore: NewRefreshTokenStore(db),
 		DiaryEntries:      NewDiaryEntryStore(db),
+		Goals:             NewGoalStore(db),
+		FinancialEvents:   NewFinancialEventStore(db),
 	}
 }

@@ -9,9 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
-var ErrDiaryEntryNotFound = errors.New("diary entry not found")
+var (
+	ErrDiaryEntryNotFound           = errors.New("diary entry not found")
+	ErrDiaryEntryHasFinancialEvents = errors.New("diary entry has financial events")
+)
 
 type DiaryEntryStore struct {
 	db *sqlx.DB
@@ -88,6 +92,12 @@ func (s *DiaryEntryStore) Delete(ctx context.Context, id, userId uuid.UUID) erro
 
 	result, err := s.db.ExecContext(ctx, query, id, userId)
 	if err != nil {
+		var postgresError *pq.Error
+		if errors.As(err, &postgresError) &&
+			postgresError.Code == pq.ErrorCode("23503") &&
+			postgresError.Constraint == "financial_events_diary_entry_owner_fkey" {
+			return fmt.Errorf("%w: id %s", ErrDiaryEntryHasFinancialEvents, id)
+		}
 		return fmt.Errorf("failed to delete diary entry with id %s: %w", id, err)
 	}
 

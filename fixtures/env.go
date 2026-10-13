@@ -16,8 +16,9 @@ import (
 )
 
 type TestEnv struct {
-	Config *config.Config
-	Db     *sql.DB
+	Config   *config.Config
+	Db       *sql.DB
+	testLock *sql.Conn
 }
 
 func NewTestEnv(t *testing.T) *TestEnv {
@@ -38,6 +39,13 @@ func migrationsURL() string {
 }
 
 func (te *TestEnv) SetupDb(t *testing.T) func(t *testing.T) {
+	ctx := t.Context()
+	lock, err := te.Db.Conn(ctx)
+	require.NoError(t, err)
+	_, err = lock.ExecContext(ctx, `SELECT pg_advisory_lock(1095976259, 1)`)
+	require.NoError(t, err)
+	te.testLock = lock
+
 	m, err := migrate.New(migrationsURL(), te.Config.DatabaseUrl())
 	require.NoError(t, err)
 
@@ -49,6 +57,9 @@ func (te *TestEnv) SetupDb(t *testing.T) func(t *testing.T) {
 	require.NoError(t, err)
 
 	return func(t *testing.T) {
+		_, err := te.testLock.ExecContext(t.Context(), `SELECT pg_advisory_unlock(1095976259, 1)`)
+		require.NoError(t, err)
+		require.NoError(t, te.testLock.Close())
 		_ = te.Db.Close()
 	}
 }
